@@ -157,6 +157,10 @@ sae = model.train_sae(
     config=config,
     save_path="my_sae.mlx"
 )
+
+# Check SAE properties
+print(f"Trained {sae.d_hidden // sae.d_model}x overcomplete SAE")
+print(f"Input dim: {sae.d_model}, Feature dim: {sae.d_hidden}")
 ```
 
 ### Training Tips
@@ -263,9 +267,9 @@ SAEs learn sparse features - most are zero at any given time:
 ```python
 features = sae.encode(activation)
 active_features = mx.sum(features != 0, axis=-1)
-sparsity = (1 - active_features / sae.feature_dim) * 100
+sparsity = (1 - active_features / sae.d_hidden) * 100
 
-print(f"Active features: {active_features.item():.0f} / {sae.feature_dim}")
+print(f"Active features: {active_features.item():.0f} / {sae.d_hidden}")
 print(f"Sparsity: {sparsity.item():.1f}%")
 # Typical: 64 active / 65,536 total = 99.9% sparse
 ```
@@ -275,10 +279,15 @@ print(f"Sparsity: {sparsity.item():.1f}%")
 Some features never activate during training - these are "dead":
 
 ```python
-# Track during training (mlxterp does this automatically)
-dead_features = sae.get_dead_features()
-print(f"Dead features: {len(dead_features)} / {sae.feature_dim}")
-print(f"Dead feature rate: {len(dead_features) / sae.feature_dim * 100:.1f}%")
+# Get activation statistics (includes dead feature info)
+with model.trace("Sample text") as trace:
+    mlp_out = trace.activations['model.model.layers.10.mlp']
+
+features = sae.encode(mlp_out)
+stats = sae.get_activation_stats(features)
+
+print(f"Dead features: {stats['dead_features']:.0f} / {sae.d_hidden}")
+print(f"Dead feature rate: {stats['dead_fraction'] * 100:.1f}%")
 ```
 
 **Ghost gradients** (enabled in config) help reduce dead features:

@@ -169,8 +169,9 @@ sae = model.train_sae(
 )
 
 print("\n✅ SAE training complete!")
-print(f"Trained {sae.expansion_factor}x overcomplete SAE")
-print(f"Input dim: {sae.input_dim}, Feature dim: {sae.feature_dim}")
+expansion = sae.d_hidden // sae.d_model
+print(f"Trained {expansion}x overcomplete SAE")
+print(f"Input dim: {sae.d_model}, Feature dim: {sae.d_hidden}")
 
 input("\nPress Enter to continue to feature analysis...")
 
@@ -262,8 +263,8 @@ print(f"Relative error: {relative_error:.2f}%")
 
 # Check sparsity
 active_features = mx.sum(features != 0, axis=-1)
-print(f"Active features: {active_features[0, -1].item():.0f} / {sae.feature_dim}")
-print(f"Sparsity: {(1 - active_features[0, -1].item() / sae.feature_dim) * 100:.1f}%")
+print(f"Active features: {active_features[0, -1].item():.0f} / {sae.d_hidden}")
+print(f"Sparsity: {(1 - active_features[0, -1].item() / sae.d_hidden) * 100:.1f}%")
 
 input("\nPress Enter to continue to feature interpretation...")
 
